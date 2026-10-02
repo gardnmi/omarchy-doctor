@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+verification/installed-*-status.json
+verification/live-scan.jsonl
+verification/live-deep-scan.jsonl
+verification/shell-*.json
