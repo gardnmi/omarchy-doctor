@@ -40,7 +40,8 @@ This validates and copies the runtime into `~/.config/omarchy/plugins/nixfred.do
 
 ## Controls
 
-- Left-click the Doctor glyph to open or close it; middle-click to scan; right-click for Settings.
+- The bar icon is a white medical cross on a badge: green when every completed check is healthy, amber when something needs attention, red when there is a problem, gray until Doctor has a complete result. The corner number counts open issues (problems plus attention).
+- Left-click the Doctor icon to open or close it; middle-click to scan; right-click for Settings.
 - Run Doctor performs a quick scan. Deep scan checks package files too. Cancel keeps partial results explicitly incomplete.
 - Click any hardware card or finding to inspect its evidence. A non-healthy finding shows **Fix with agent** and **Recheck**.
 - `R` scans, `C` copies the selected finding's diagnostic command, and `Esc` closes the panel. Arrow keys navigate the focused findings list using actual row geometry. Tab traverses controls.

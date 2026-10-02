@@ -13,7 +13,7 @@ Panel {
     manageIpc: false
     implicitWidth: button.implicitWidth
     implicitHeight: button.implicitHeight
-    property string version: "1.1.0"
+    property string version: "1.1.1"
     property string page: "overview"
     property var results: []
     property var metrics: ({})
@@ -200,7 +200,7 @@ Panel {
         id:button;anchors.fill:parent;bar:root.bar;text:""
         active:root.counts.bad>0||root.counts.warn>0
         tooltipText:"Omarchy Doctor · "+(root.scanning?"Scanning":root.complete?(root.stale?"Results are stale":Model.labels[root.overallState]):"Not fully checked")+" · "+(root.counts.bad+root.counts.warn)+" findings"
-        iconComponent:Component {HardwareGlyph{kind:"core";tint:root.stateColor(root.overallState);surface:root.surface;animate:root.motion&&root.scanning}}
+        iconComponent:Component {MedicalCross{state:root.counts.bad?"bad":root.counts.warn?"warn":root.results.length&&root.complete&&root.counts.ok?"ok":"unknown";count:root.counts.bad+root.counts.warn;busy:root.motion&&root.scanning}}
         onPressed:function(code){if(code===Qt.MiddleButton)root.refresh(false);else if(code===Qt.RightButton){root.navigate("settings");root.open()}else root.toggle()}
     }
     KeyboardPanel {
