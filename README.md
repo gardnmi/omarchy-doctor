@@ -36,7 +36,7 @@ python3 install.py --enable
 
 This validates and copies the runtime into `~/.config/omarchy/plugins/nixfred.doctor`, backs up any prior installation and shell configuration, and places Doctor beside Pulse through Omarchy's public bar API. Existing widgets keep their order and settings. No shell restart is required. Omit `--enable` to install without placing it on the bar.
 
-`lm_sensors` and `smartmontools` improve hardware coverage. Other checks use system-provided tools such as systemctl, journalctl, ip, getent, nmcli and wpctl. NVIDIA measurements use nvidia-smi; DRM activity is a fallback on other GPUs. Missing tools, permissions and unsupported sensors produce unavailable or skipped results, never a fabricated healthy verdict. SMART runs without privilege prompts; inspect its evidence if access is denied.
+`lm_sensors` and `smartmontools` improve hardware coverage. Other checks use system-provided tools such as systemctl, journalctl, ip, getent, nmcli and wpctl. NVIDIA measurements use nvidia-smi; DRM activity is a fallback on other GPUs. Missing tools, permissions and unsupported sensors produce unavailable or skipped results, never a fabricated healthy verdict. SMART runs without privilege prompts. Reading an NVMe health log needs root, so when the plain read is denied Doctor retries once with `sudo -n`, which uses an existing passwordless rule or fails immediately; the drive then stays unknown and the evidence shows why. To allow only that read, add a sudoers drop-in such as `yourname ALL=(root) NOPASSWD: /usr/bin/smartctl ^-j -H /dev/[a-z0-9]+$` with `visudo -f /etc/sudoers.d/doctor-smart`.
 
 ## Controls
 
