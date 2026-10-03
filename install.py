@@ -61,7 +61,10 @@ def main():
     if args.enable:
         try:
             subprocess.run(['omarchy-shell','shell','rescanPlugins'],check=True)
-            subprocess.run(['omarchy','bar','put','nixfred.doctor','--section','center','--after','nixfred.pulse'],check=True)
+            # Beside Pulse when this host has it on the bar; otherwise the manifest's default section.
+            # Existing widgets keep their order either way.
+            placement=['--section','center','--after','nixfred.pulse'] if '"nixfred.pulse"' in (config.read_text() if config.exists() else '') else ['--section','right','--index','0']
+            subprocess.run(['omarchy','bar','put','nixfred.doctor',*placement],check=True)
             receipt['enabled']=True
         except (subprocess.CalledProcessError,OSError) as exc:
             receipt['activation_error']=str(exc)
