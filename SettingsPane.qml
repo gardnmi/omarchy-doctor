@@ -38,11 +38,9 @@ Column {
     Rectangle {
         width:parent.width;height:about.implicitHeight+40;radius:12;color:host.card;border.color:host.edge
         Column {
-            id:about;x:20;y:20;width:parent.width-40;spacing:13
-            Text{font.family:Style.font.family;text:"OMARCHY DOCTOR / "+host.version;color:host.dim;font.pixelSize:11;font.letterSpacing:1.7}
-            Text{font.family:Style.font.family;width:parent.width;text:"A visual checkup for your machine. Inspired by Pulse's drawn hardware, clear priorities and live histories, with diagnostic evidence behind every result.";color:host.ink;font.pixelSize:13;wrapMode:Text.WordWrap;lineHeight:1.3}
-            Text{font.family:Style.font.family;width:parent.width;text:"Doctor never repairs, removes packages, restarts services or kills applications. Diagnostic commands are shown for inspection and copied only when you choose. Scan records and observations stay in your local state directory for up to seven days; exported reports remain until you remove them.";color:host.dim;font.pixelSize:13;wrapMode:Text.WordWrap;lineHeight:1.3}
-            Text{font.family:Style.font.family;width:parent.width;text:"Healthy means the checks completed with no detected concerns. Unavailable, skipped, partial and stale results remain visible. Missing tools and SMART permissions are reported honestly.";color:host.dim;font.pixelSize:13;wrapMode:Text.WordWrap;lineHeight:1.3}
+            id:about;x:20;y:20;width:parent.width-40;spacing:11
+            Text{font.family:Style.font.family;text:"SCAN EVIDENCE";color:host.dim;font.pixelSize:11;font.letterSpacing:1.7}
+            Text{font.family:Style.font.family;width:parent.width;text:"Export every saved checkup as a JSON report in your local state directory. Read it before sharing; evidence can include device, service and journal details.";color:host.dim;font.pixelSize:12;wrapMode:Text.WordWrap}
             DoctorAction{text:"Export scan evidence";ink:host.ink;accent:host.good;onClicked:host.exportReport()}
         }
     }

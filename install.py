@@ -11,7 +11,7 @@ import tempfile
 
 ROOT=Path(__file__).resolve().parent
 RUNTIME=['Doctor.qml','DoctorAction.qml','HardwareGlyph.qml','MedicalCross.qml','SystemMap.qml','HistoryGraph.qml',
-         'OverviewPane.qml','FindingsPane.qml','HistoryPane.qml','FixesPane.qml','SettingsPane.qml','Model.js',
+         'OverviewPane.qml','FindingsPane.qml','HistoryPane.qml','FixesPane.qml','AboutPane.qml','SettingsPane.qml','Model.js',
          'doctor.py','doctor-checks.sh','manifest.json','README.md','LICENSE']
 
 def main():

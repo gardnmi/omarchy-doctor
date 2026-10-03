@@ -13,7 +13,7 @@ Panel {
     manageIpc: false
     implicitWidth: button.implicitWidth
     implicitHeight: button.implicitHeight
-    property string version: "1.2.0"
+    property string version: "1.3.0"
     property string page: "overview"
     property var results: []
     property var metrics: ({})
@@ -72,7 +72,9 @@ Panel {
     readonly property color warning: lightTheme?"#956007":"#e8b572"
     readonly property color danger: lightTheme?"#b63927":"#ed8a77"
     readonly property color unknown: lightTheme?"#1f7387":"#79c6d1"
-    readonly property var pages:[{key:"overview",label:"Overview"},{key:"findings",label:"Findings"},{key:"history",label:"History"},{key:"fixes",label:"Fixes"},{key:"settings",label:"Settings"}]
+    readonly property var pages:[{key:"overview",label:"Overview"},{key:"findings",label:"Findings"},{key:"history",label:"History"},{key:"fixes",label:"Fixes"},{key:"settings",label:"Settings"},{key:"about",label:"About"}]
+    readonly property string repoUrl: "https://github.com/nixfred/omarchy-doctor"
+    readonly property string homeUrl: "https://nixfred.com"
     readonly property int fixedCount: fixes.filter(function(f){return f.status==="fixed"}).length
 
     function stateColor(state) {return state==="bad"?danger:state==="warn"?warning:state==="ok"?good:state==="unknown"?unknown:dim}
@@ -88,6 +90,8 @@ Panel {
         var next={};for(var k in root.settings)next[k]=root.settings[k];next[key]=value;root.settings=next
         if(root.bar&&root.bar.shell){if(root.bar.shell.updateEntryInline(root.moduleName,next)===false)notice="Changed for this session; settings could not be saved."}
     }
+    // Detached so a cold browser start never blocks the panel.
+    function openUrl(url) {Quickshell.execDetached(["xdg-open",url]);root.close()}
     function showFindings(key) {archived=null;filter="all";selectedId=key;page="findings"}
     function navigate(key) {page=key;outer.contentY=0;if(key==="history")loadHistory()}
     function refresh(deep) {
@@ -193,7 +197,7 @@ Panel {
         function deepScan():void{root.refresh(true)}
         function fix(check:string):void{root.fixIssue(check)}
         function recheck(check:string):void{root.recheck(check)}
-        function show(page:string):void{if(["overview","findings","history","fixes","settings"].indexOf(page)>=0){root.navigate(page);root.open()}}
+        function show(page:string):void{if(["overview","findings","history","fixes","settings","about"].indexOf(page)>=0){root.navigate(page);root.open()}}
         function status():string{return root.status()}
     }
     BarIconButton {
@@ -252,7 +256,7 @@ Panel {
                     }
                     Loader {
                         id:pageLoader;width:parent.width;height:item?item.implicitHeight:0
-                        sourceComponent:root.page==="overview"?overviewComponent:root.page==="findings"?findingsComponent:root.page==="history"?historyComponent:root.page==="fixes"?fixesComponent:settingsComponent
+                        sourceComponent:root.page==="overview"?overviewComponent:root.page==="findings"?findingsComponent:root.page==="history"?historyComponent:root.page==="fixes"?fixesComponent:root.page==="about"?aboutComponent:settingsComponent
                         onLoaded:if(item)item.width=Qt.binding(function(){return pageLoader.width})
                         opacity:1
                         NumberAnimation on opacity {id:entrance;from:0;to:1;duration:220;running:root.motion&&root.opened}
@@ -271,5 +275,6 @@ Panel {
     Component{id:findingsComponent;FindingsPane{host:root}}
     Component{id:historyComponent;HistoryPane{host:root}}
     Component{id:fixesComponent;FixesPane{host:root}}
+    Component{id:aboutComponent;AboutPane{host:root}}
     Component{id:settingsComponent;SettingsPane{host:root}}
 }

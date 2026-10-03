@@ -45,6 +45,7 @@ This validates and copies the runtime into `~/.config/omarchy/plugins/nixfred.do
 - Run Doctor performs a quick scan. Deep scan checks package files too. Cancel keeps partial results explicitly incomplete.
 - Click any hardware card or finding to inspect its evidence. A non-healthy finding shows **Fix with agent** and **Recheck**.
 - `R` scans, `C` copies the selected finding's diagnostic command, and `Esc` closes the panel. Arrow keys navigate the focused findings list using actual row geometry. Tab traverses controls.
+- About links to the source on GitHub and nixfred.com and explains how fixes, results and data work.
 - Settings offers animation/reduced motion and manual, 2-minute or 5-minute automatic scans. Automatic scans and live sampling run only while Doctor is open. A scan already started may finish after closing.
 
 ## Health semantics
