@@ -30,6 +30,32 @@ The Doctor collector never repairs, deletes, installs packages, restarts service
 
 Requires Omarchy Quattro/Quickshell, Git, Python 3 and the Omarchy plugin CLI.
 
+### Recommended: install with Omarchy
+
+Open a terminal and run:
+
+```bash
+omarchy plugin add https://github.com/nixfred/omarchy-doctor.git --enable
+```
+
+Omarchy downloads the repository into `~/.config/omarchy/plugins/nixfred.doctor`, validates it, and enables the plugin. Follow the prompts to confirm installation and choose its bar section. Run this as your normal desktop user, without `sudo`; you do not need a separate source checkout or to run `install.py`.
+
+Click the medical-cross icon on the bar to open Doctor, or run:
+
+```bash
+omarchy-shell nixfred.doctor open
+```
+
+Update this installation with:
+
+```bash
+omarchy plugin update nixfred.doctor
+```
+
+### Alternative: install from a source checkout
+
+Use the custom installer if you want its installation backups and automatic placement beside Pulse.
+
 Open a terminal in the directory where you want to keep the source code, then download and install Doctor:
 
 ```bash
@@ -48,7 +74,7 @@ After installation with `--enable`, click the medical-cross icon on the bar to o
 omarchy-shell nixfred.doctor open
 ```
 
-### Update
+#### Update a source-checkout installation
 
 From your existing source checkout, download the latest changes and run the installer again:
 
