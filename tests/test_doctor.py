@@ -205,4 +205,38 @@ class HistoryTests(unittest.TestCase):
         for part in ('btrfs-scrub@-.service failed','systemctl --failed','recheck services','fix abc','Ask me before anything destructive'):
             self.assertIn(part,text)
 
+    def test_event_checks_count_only_after_hand_off(self):
+        calls=[]
+        def run(args,**kw):
+            calls.append(args)
+            return probe('No coredumps found.',1) if args[0]=='coredumpctl' else probe('')
+        p=doctor.Probes(run,since={'crashes':1790985613,'journal':1790985613})
+        row=p.crashes()
+        self.assertIn('@1790985613',calls[0]);self.assertNotIn('today',calls[0])
+        self.assertEqual(row['state'],'ok');self.assertIn('since the hand-off',row['summary'])
+        self.assertEqual(p.journal()['state'],'ok');self.assertIn('@1790985613',calls[1])
+        doctor.Probes(run).crashes()
+        self.assertIn('today',calls[2])
+
+    def test_baselines_ignore_abandoned_and_fix_regresses_when_problem_returns(self):
+        with tempfile.TemporaryDirectory() as folder:
+            h=doctor.History(Path(folder)/'history.sqlite3')
+            row=doctor.result('crashes','system','Crashes','warn','2 core dumps')
+            fix=h.open_fix(row,'grok')
+            h.db.execute("UPDATE fixes SET status='abandoned' WHERE id=?",(fix,));h.db.commit()
+            self.assertEqual(h.baselines(),{})
+            fix=h.open_fix(row,'grok')
+            self.assertIn('crashes',h.baselines())
+            ok=doctor.result('crashes','system','Crashes','ok','No new core dumps')
+            h.settle([ok],'recheck')
+            self.assertEqual(h.fixes()[0]['status'],'fixed')
+            self.assertEqual(h.settle([row],'quick')[0]['status'],'regressed')
+            self.assertEqual(h.fixes()[0]['status'],'regressed')
+            h.close()
+
+    def test_prompt_forbids_hiding_evidence(self):
+        text=doctor.fix_prompt(doctor.result('crashes','system','Crashes','warn','2 core dumps'),'host','abc')
+        self.assertIn('Fix the cause, never the measurement',text)
+        self.assertIn('diagnose-crash',text)
+
 if __name__=='__main__':unittest.main()

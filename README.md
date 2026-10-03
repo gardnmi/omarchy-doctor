@@ -51,6 +51,8 @@ This validates and copies the runtime into `~/.config/omarchy/plugins/nixfred.do
 
 Healthy means completed checks reported no concern. Unavailable evidence, intentional skips, incomplete scans and results older than ten minutes are distinguished. A quick scan intentionally skips package integrity. A usage spike alone is not treated as a failure. Sensor critical limits are never mistaken for current temperatures, and virtual compressed-memory devices are not presented as physical SMART drives.
 
+Three checks count history rather than current state: application crashes (core dumps today), the boot journal (high-priority records this boot) and Omarchy shell warnings. A crash cannot be un-crashed, so these could never clear without deleting evidence. Once one of them is handed to an agent, everything up to the hand-off counts as reviewed, and the check reports only events that happen afterwards. A fix that is followed by the same kind of problem within 24 hours is marked **regressed** (shown as "came back"). The agent briefing forbids passing a check by hiding evidence: no deleting core dumps, vacuuming journals, masking units or editing Doctor.
+
 Graphs use timestamped real observations. A gap longer than two minutes is left unconnected. A fresh installation has no historical data; history accumulates from scans and while the panel is open. The overview retains recent observations; History reads the selected range from local storage.
 
 ## Data and recovery

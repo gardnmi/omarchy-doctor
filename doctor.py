@@ -22,7 +22,7 @@ import threading
 import time
 import uuid
 
-VERSION = "1.1.1"
+VERSION = "1.2.0"
 SCHEMA = 1
 STATES = {"ok", "warn", "bad", "unknown", "skipped"}
 RETENTION = 7 * 86400
@@ -124,9 +124,20 @@ def pressure(kind):
     except OSError:
         return None
 
+def clock(ts):
+    return dt.datetime.fromtimestamp(ts).strftime("%H:%M") if dt.date.fromtimestamp(ts) == dt.date.today() else dt.datetime.fromtimestamp(ts).strftime("%b %d %H:%M")
+
 class Probes:
-    def __init__(self, run=None):
+    # Event checks count history (crashes, journal records). A crash cannot un-happen, so once a
+    # finding is handed to an agent, everything up to that moment counts as reviewed and the check
+    # reports only what happened afterwards. New events after a fix mean it did not hold.
+    def __init__(self, run=None, since=None):
         self.run = run or Runner()
+        self.since = since or {}
+
+    def window(self, key):
+        cutoff = self.since.get(key)
+        return (["--since", "@%d" % int(cutoff)], f" since the hand-off at {clock(cutoff)}") if cutoff else ([], "")
 
     def services(self):
         outputs, failed, errors = [], [], []
@@ -145,7 +156,8 @@ class Probes:
                       "systemctl --failed; systemctl --user --failed", {"failed_units": len(failed), "unavailable_scopes": len(errors)})
 
     def journal(self):
-        p = self.run(["journalctl", "-b", "-p", "3", "-n", "40", "--no-pager", "-o", "json"])
+        since, after = self.window("journal")
+        p = self.run(["journalctl", "-b", *since, "-p", "3", "-n", "200", "--no-pager", "-o", "json"])
         if not p["ok"]:
             return unavailable("journal", "system", "Boot journal", p)
         entries = []
@@ -156,10 +168,12 @@ class Probes:
                 entries.append(json.loads(line))
             except ValueError:
                 return unavailable("journal", "system", "Boot journal", {**p, "output": "Could not parse the journal response."})
+        count = f"{len(entries)}+" if len(entries) >= 200 else str(len(entries))
         return result("journal", "system", "Boot journal", "warn" if entries else "ok",
-            f"{len(entries)} recent high-priority record(s); inspect context." if entries else "No high-priority entries in this boot.",
+            (f"{count} new high-priority record(s){after}; inspect context." if after else f"{count} high-priority record(s) this boot; inspect context.") if entries
+            else (f"No new high-priority entries{after}." if after else "No high-priority entries in this boot."),
             "\n\n".join(str(e.get("SYSLOG_IDENTIFIER", e.get("_COMM", "journal"))) + ": " + str(e.get("MESSAGE", "")) for e in entries),
-            "journalctl -b -p 3 -n 40 --no-pager", {"journal_entries": len(entries)})
+            "journalctl -b " + " ".join(since + ["-p", "3", "-n", "200", "--no-pager"]), {"journal_entries": len(entries)})
 
     def memory(self):
         try:
@@ -407,16 +421,18 @@ class Probes:
             "Wi-Fi radio is " + value + ". This does not prove internet connectivity.", p["output"], "nmcli device status")
 
     def crashes(self):
-        p = self.run(["coredumpctl", "--since", "today", "--no-pager", "--no-legend", "list"], allowed=(0, 1))
+        since, after = self.window("crashes")
+        p = self.run(["coredumpctl", *(since or ["--since", "today"]), "--no-pager", "--no-legend", "list"], allowed=(0, 1))
         if p["code"] == 1 and re.fullmatch(r"No coredumps found\.?", p["output"].strip()):
-            return result("crashes", "system", "Application crashes", "ok", "No core dumps recorded today.", p["output"], p["command"], {"crashes": 0})
+            return result("crashes", "system", "Application crashes", "ok", f"No new core dumps{after}." if after else "No core dumps recorded today.", p["output"], p["command"], {"crashes": 0})
         if not p["ok"] or p["code"] != 0:
             return unavailable("crashes", "system", "Application crashes", p)
         lines = [x for x in p["output"].splitlines() if x.strip()]
-        return result("crashes", "system", "Application crashes", "warn" if lines else "ok", f"{len(lines)} core dump record(s) today.", p["output"], p["command"], {"crashes": len(lines)})
+        return result("crashes", "system", "Application crashes", "warn" if lines else "ok", f"{len(lines)} new core dump record(s){after}." if after else f"{len(lines)} core dump record(s) today.", p["output"], p["command"], {"crashes": len(lines)})
 
     def shell(self):
-        p = self.run(["journalctl", "--user", "-b", "-n", "300", "--no-pager", "-o", "json"])
+        since, after = self.window("shell")
+        p = self.run(["journalctl", "--user", "-b", *since, "-n", "300", "--no-pager", "-o", "json"])
         if not p["ok"]:
             return unavailable("shell", "system", "Omarchy shell", p)
         lines = []
@@ -434,7 +450,8 @@ class Probes:
             if re.search(r"quickshell|omarchy-shell|\bqs\b", identity, re.I) and ((priority is not None and priority <= 4) or error_message):
                 lines.append(message)
         return result("shell", "system", "Omarchy shell", "warn" if lines else "ok",
-            f"{len(lines)} shell warning/error record(s) in the recent journal window." if lines else "No shell warnings in the recent 300-record user journal window.",
+            (f"{len(lines)} new shell warning/error record(s){after}." if after else f"{len(lines)} shell warning/error record(s) in the recent journal window.") if lines
+            else (f"No new shell warnings{after}." if after else "No shell warnings in the recent 300-record user journal window."),
             "\n".join(lines), "journalctl --user -b -p 4 --no-pager", {"shell_warnings": len(lines)})
 
 
@@ -512,6 +529,10 @@ class History:
         self.db.commit()
         return fix_id
 
+    def baselines(self):
+        """Hand-off time per check: events up to then were given to an agent as evidence."""
+        return dict(self.db.execute("SELECT check_id, MAX(started) FROM fixes WHERE status != 'abandoned' GROUP BY check_id").fetchall())
+
     def settle(self, rows, mode):
         """Close open fixes whose check now passes; count a failed recheck as an attempt."""
         updates = []
@@ -525,6 +546,11 @@ class History:
                 elif mode == "recheck":
                     self.db.execute("UPDATE fixes SET status='still_failing', after=?, attempts=attempts+1 WHERE id=?", (json.dumps(row), fix_id))
                     updates.append({"id": fix_id, "check": row["id"], "title": row["title"], "status": "still_failing"})
+            if row["state"] in ("bad", "warn"):
+                # A fix that does not hold is not a fix: the problem came back within a day.
+                for (fix_id,) in self.db.execute("SELECT id FROM fixes WHERE check_id=? AND status='fixed' AND resolved >= ?", (row["id"], time.time() - 86400)).fetchall():
+                    self.db.execute("UPDATE fixes SET status='regressed', after=? WHERE id=?", (json.dumps(row), fix_id))
+                    updates.append({"id": fix_id, "check": row["id"], "title": row["title"], "status": "regressed"})
         self.db.commit()
         return updates
 
@@ -571,8 +597,14 @@ def default_agent():
     except (OSError, subprocess.SubprocessError):
         return ""
 
+HINTS = {
+    "crashes": "\n\nFor crashes, follow Omarchy's diagnose-crash skill if your harness has it, or read\n$OMARCHY_PATH/default/agents/skills/diagnose-crash/SKILL.md directly. Work per crashing program.",
+    "journal": "\n\nGroup the journal records by source and fix each real cause; say which ones are benign noise.",
+}
+
 def fix_prompt(row, host, fix_id):
     here = Path(__file__).resolve()
+    hint = HINTS.get(row["id"], "")
     evidence = (row.get("evidence") or "No additional output was collected.")[:6000]
     return f"""Omarchy Doctor found a problem on this machine ({host}) and I want you to fix it.
 
@@ -593,6 +625,11 @@ How to work:
 4. Ask me before anything destructive or hard to undo (deleting data, removing packages,
    reformatting, force operations, changing boot or disk config).
 5. If the finding is harmless or cannot be fixed from here, say so plainly instead of forcing it.
+6. Fix the cause, never the measurement. Do not make the check pass by hiding evidence: no
+   deleting core dumps, vacuuming or rotating journals, masking or disabling units just to
+   silence them, or editing Doctor. Crash and journal checks already count only events after
+   this hand-off, so earlier records are fine to leave alone. If the problem recurs within a
+   day, Doctor marks this fix as regressed.{hint}
 
 When you are done, verify with Doctor. It re-runs only this check and records the result
 in its fix history (fix {fix_id}):
@@ -628,6 +665,15 @@ def main():
     signal.signal(signal.SIGTERM, stop_children)
     signal.signal(signal.SIGINT, stop_children)
     probes = Probes()
+    if args.action in ("scan", "recheck") and Path(args.database).exists():
+        try:
+            history = History(args.database)
+            try:
+                probes.since = history.baselines()
+            finally:
+                history.close()
+        except (OSError, sqlite3.Error):
+            pass
     if args.action == "scan":
         scan_id, rows, duration = run_scan(probes, args.deep)
         changes, storage_error = [], ""

@@ -9,11 +9,11 @@ Column {
     spacing:14
     readonly property var tally:{
         var t={fixed:0,open:0,failing:0}
-        host.fixes.forEach(function(f){if(f.status==="fixed")t.fixed++;else if(f.status==="pending")t.open++;else if(f.status==="still_failing")t.failing++})
+        host.fixes.forEach(function(f){if(f.status==="fixed")t.fixed++;else if(f.status==="pending")t.open++;else if(f.status==="still_failing"||f.status==="regressed")t.failing++})
         return t
     }
-    function label(status){return status==="fixed"?"Fixed":status==="pending"?"With agent":status==="still_failing"?"Still failing":status==="superseded"?"Replaced":"Not started"}
-    function tint(status){return status==="fixed"?host.good:status==="pending"?host.unknown:status==="still_failing"?host.warning:host.dim}
+    function label(status){return status==="fixed"?"Fixed":status==="pending"?"With agent":status==="still_failing"?"Still failing":status==="regressed"?"Came back":status==="superseded"?"Replaced":"Not started"}
+    function tint(status){return status==="fixed"?host.good:status==="pending"?host.unknown:status==="still_failing"?host.warning:status==="regressed"?host.danger:host.dim}
     function took(f){
         if(!f.resolved)return ""
         var s=Math.max(0,Math.round(f.resolved-f.started))
@@ -22,7 +22,7 @@ Column {
     Row {
         width:parent.width;spacing:12
         Repeater {
-            model:[{n:root.tally.fixed,label:"FIXED BY DOCTOR",c:host.good},{n:root.tally.open,label:"WITH AGENT",c:host.unknown},{n:root.tally.failing,label:"STILL FAILING",c:host.warning}]
+            model:[{n:root.tally.fixed,label:"FIXED BY DOCTOR",c:host.good},{n:root.tally.open,label:"WITH AGENT",c:host.unknown},{n:root.tally.failing,label:"FAILING / CAME BACK",c:host.warning}]
             Rectangle {
                 required property var modelData
                 width:(root.width-24)/3;height:78;radius:12;color:host.card;border.color:host.edge
