@@ -272,6 +272,14 @@ class Probes:
             if not re.fullmatch(r"/dev/[A-Za-z0-9_.-]+", name):
                 unknown.append(name); continue
             q = self.run(["smartctl", "-j", "-H", name], timeout=4, allowed=tuple(range(256)))
+            # The kernel refuses the NVMe SMART log to non-root even with device access, so retry once
+            # through sudo -n: it uses an existing passwordless rule or fails at once, never prompting.
+            if q["code"] & 2 and "Permission denied" in q["output"]:
+                s = self.run(["sudo", "-n", "smartctl", "-j", "-H", name], timeout=6, allowed=tuple(range(256)))
+                if s["code"] & 1:
+                    q["output"] += "\nsudo -n smartctl: " + (s["output"].strip().splitlines() or ["refused"])[-1]
+                else:
+                    q = s
             try:
                 data = json.loads(q.get("stdout", q["output"]))
             except (ValueError, TypeError):
