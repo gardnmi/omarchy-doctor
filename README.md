@@ -28,13 +28,36 @@ The Doctor collector never repairs, deletes, installs packages, restarts service
 
 ## Install
 
-Requires Omarchy Quattro/Quickshell, Python 3 and the Omarchy plugin CLI. From this checkout:
+Requires Omarchy Quattro/Quickshell, Git, Python 3 and the Omarchy plugin CLI.
+
+Open a terminal in the directory where you want to keep the source code, then download and install Doctor:
 
 ```bash
+git clone https://github.com/nixfred/omarchy-doctor.git
+cd omarchy-doctor
 python3 install.py --enable
 ```
 
-This validates and copies the runtime into `~/.config/omarchy/plugins/nixfred.doctor`, backs up any prior installation and shell configuration, and places Doctor beside Pulse through Omarchy's public bar API. Existing widgets keep their order and settings. No shell restart is required. Omit `--enable` to install without placing it on the bar.
+Run these commands as your normal desktop user, without `sudo`. If you already cloned the repository, open a terminal in that checkout and run only `python3 install.py --enable`.
+
+This validates and copies the runtime into `~/.config/omarchy/plugins/nixfred.doctor`, backs up any prior installation and shell configuration, and places Doctor beside Pulse through Omarchy's public bar API. If Pulse is not on your bar, Doctor is added to the start of the right section. Existing widgets keep their order and settings. No shell restart is required. Omit `--enable` to install without placing it on the bar.
+
+After installation with `--enable`, click the medical-cross icon on the bar to open Doctor, or run:
+
+```bash
+omarchy-shell nixfred.doctor open
+```
+
+### Update
+
+From your existing source checkout, download the latest changes and run the installer again:
+
+```bash
+git pull --ff-only
+python3 install.py --enable
+```
+
+### Optional hardware tools
 
 `lm_sensors` and `smartmontools` improve hardware coverage. Other checks use system-provided tools such as systemctl, journalctl, ip, getent, nmcli and wpctl. NVIDIA measurements use nvidia-smi; DRM activity is a fallback on other GPUs. Missing tools, permissions and unsupported sensors produce unavailable or skipped results, never a fabricated healthy verdict. SMART runs without privilege prompts; inspect its evidence if access is denied.
 
